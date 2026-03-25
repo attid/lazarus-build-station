@@ -1,187 +1,102 @@
 # lazarus-build-station
 
-`lazarus-build-station` is a small standalone repository with Docker-based build environments for Lazarus and Free Pascal projects.
+`lazarus-build-station` is a Docker-based build environment for Lazarus and Free Pascal projects.
 
-It is intended for reproducible builds, not for running your application in production. The images are designed for:
+It is a builder image, not a runtime container. The goal is reproducible Lazarus/FPC builds for external projects, including native Linux builds and Windows cross-compilation from Linux.
 
-- native Linux builds
-- Windows cross-compilation from Linux
-- repeatable local and CI-friendly build setups for external Lazarus/FPC projects
+## Available images
 
-## Included images
+Published images live in GHCR:
 
-This repository contains two builder images:
+- `ghcr.io/attid/lazarus-build-station:latest`
+- `ghcr.io/attid/lazarus-build-station:latest-amd64`
+- `ghcr.io/attid/lazarus-build-station:latest-i386`
+- `ghcr.io/attid/lazarus-build-station:4.6.0`
+- `ghcr.io/attid/lazarus-build-station:4.6.0-amd64`
+- `ghcr.io/attid/lazarus-build-station:4.6.0-i386`
 
-- `amd64` builder: native Linux x86_64 toolchain plus Windows `win64` cross-compilation
-- `i386` builder: native Linux i386 toolchain plus Windows `win32` cross-compilation
+The generic `latest` and version tags are published as multi-arch manifests.
 
-Both images download official Lazarus/FPC Debian packages from `download.lazarus-ide.org` during `docker build`.
-The package URLs are pinned by version, and the downloaded `.deb` files are verified against pinned SHA256 checksums during the build.
+## Quick start
 
-The `amd64` image uses an Ubuntu 22.04 base. The `i386` image uses a Debian 11 base because current Ubuntu Docker manifests do not publish `linux/386` variants for recent LTS tags.
-
-Current default package versions:
-
-- amd64 Lazarus release directory: `4.6`
-- amd64 Lazarus package version: `4.6.0-0`
-- i386 Lazarus release directory: `4.6`
-- i386 Lazarus package version: `4.6.0-0`
-- FPC package version: `3.2.2-210709`
-
-These defaults were chosen because, on 2026-03-25, `download.lazarus-ide.org` exposes matching `amd64` and `i386` Debian package sets in the `Lazarus 4.6` directory.
-
-## Repository layout
-
-```text
-.
-├── Dockerfile-amd64
-├── Dockerfile-i386
-├── LICENSE
-├── README.md
-└── scripts/
-    └── install-lazarus-debs.sh
-```
-
-## Prerequisites
-
-- Docker with permission to build images
-- Internet access during `docker build`
-- Enough free disk space for Ubuntu base images, Lazarus/FPC packages, and compiler build artifacts
-
-## Build the amd64 image
+Pull the published image:
 
 ```bash
-docker build \
-  -f Dockerfile-amd64 \
-  -t lazarus-build-station:amd64 .
+docker pull ghcr.io/attid/lazarus-build-station:latest
 ```
 
-To override package versions:
-
-```bash
-docker build \
-  -f Dockerfile-amd64 \
-  -t lazarus-build-station:amd64 \
-  --build-arg LAZARUS_RELEASE=4.6 \
-  --build-arg LAZARUS_PACKAGE_VERSION=4.6.0-0 \
-  --build-arg FPC_PACKAGE_VERSION=3.2.2-210709 .
-```
-
-If you override package versions, you should also override the expected checksums:
-
-```bash
-docker build \
-  -f Dockerfile-amd64 \
-  -t lazarus-build-station:amd64 \
-  --build-arg LAZARUS_RELEASE=4.6 \
-  --build-arg LAZARUS_PACKAGE_VERSION=4.6.0-0 \
-  --build-arg FPC_PACKAGE_VERSION=3.2.2-210709 \
-  --build-arg FPC_LAZ_SHA256=... \
-  --build-arg FPC_SRC_SHA256=... \
-  --build-arg LAZARUS_PROJECT_SHA256=... .
-```
-
-## Build the i386 image
-
-```bash
-docker build \
-  -f Dockerfile-i386 \
-  -t lazarus-build-station:i386 .
-```
-
-If your Docker host requires an explicit platform selection for 32-bit images, use:
-
-```bash
-docker build \
-  --platform linux/386 \
-  -f Dockerfile-i386 \
-  -t lazarus-build-station:i386 .
-```
-
-## Use the container to build an external project
-
-Mount your Lazarus/FPC project into `/workspace` and run your normal build command inside the container.
-
-Example with `lazbuild`:
+Run it against your project directory:
 
 ```bash
 docker run --rm -it \
   -v "$PWD:/workspace" \
-  lazarus-build-station:amd64 \
+  ghcr.io/attid/lazarus-build-station:latest \
   lazbuild path/to/project.lpi
 ```
 
-Example with direct `fpc` invocation:
+Direct `fpc` usage works too:
 
 ```bash
 docker run --rm -it \
   -v "$PWD:/workspace" \
-  lazarus-build-station:amd64 \
+  ghcr.io/attid/lazarus-build-station:latest \
   fpc src/main.pas
 ```
 
-For Windows cross-compilation inside the `amd64` image:
+## Cross-compilation examples
+
+Windows `win64` from the `amd64` builder:
 
 ```bash
 docker run --rm -it \
   -v "$PWD:/workspace" \
-  lazarus-build-station:amd64 \
+  ghcr.io/attid/lazarus-build-station:latest-amd64 \
   fpc -Twin64 src/main.pas
 ```
 
-For Windows cross-compilation inside the `i386` image:
+Windows `win32` from the `i386` builder:
 
 ```bash
 docker run --rm -it \
   -v "$PWD:/workspace" \
-  lazarus-build-station:i386 \
+  ghcr.io/attid/lazarus-build-station:latest-i386 \
   fpc -Twin32 src/main.pas
 ```
 
-## How package installation works
+## What is inside
 
-During image build, the repository downloads three official Debian packages from the Lazarus release tree at `download.lazarus-ide.org` and installs them in this order:
+The repository currently publishes two builder variants:
 
-1. `fpc-laz`
-2. `fpc-src`
-3. `lazarus-project`
+- `amd64`: Ubuntu 22.04 base, native Linux x86_64 build environment, Windows `win64` cross-compiler
+- `i386`: Debian 11 base, native Linux i386 build environment, Windows `win32` cross-compiler
 
-The build verifies the downloaded files with pinned SHA256 checksums before package installation.
+Both variants currently target:
 
-The images then build the relevant Windows cross-compiler inside the container.
+- Lazarus `4.6.0-0`
+- FPC `3.2.2-210709`
 
-## Limitations
+During image build, packages are downloaded from `download.lazarus-ide.org`, pinned by version, and verified with SHA256 checksums before installation.
 
-- The build depends on external package hosting at `download.lazarus-ide.org`.
-- The default package versions and SHA256 checksums are pinned, but they still assume the upstream download layout remains unchanged.
-- The `i386` image depends on 32-bit Ubuntu base image availability and may require `--platform linux/386` depending on your Docker setup.
-- The `i386` image uses Debian 11 instead of Ubuntu because recent Ubuntu container tags are not published for `linux/386`.
-- This repository does not ship Lazarus/FPC `.deb` files locally.
-- This project provides build environments only. It does not include project templates or runtime images.
+## Prerequisites and limitations
 
-## GitHub releases and GHCR images
+- Docker is required.
+- Internet access is required only when building the images locally.
+- The published images depend on upstream Lazarus package availability when the repository is updated for future releases.
+- The `i386` image uses Debian 11 because recent Ubuntu base images are not published for `linux/386`.
+- This repository does not ship Lazarus/FPC `.deb` packages locally.
 
-The repository includes a GitHub Actions workflow at `.github/workflows/release-images.yml`.
+## Releases
 
-When you push a Git tag like `v4.6.0`, the workflow publishes:
+Pushing a Git tag like `v4.6.0` triggers GitHub Actions to publish:
 
-- `ghcr.io/attid/lazarus-build-station:4.6.0-amd64`
-- `ghcr.io/attid/lazarus-build-station:4.6.0-i386`
-- `ghcr.io/attid/lazarus-build-station:4.6.0`
-- `ghcr.io/attid/lazarus-build-station:latest-amd64`
-- `ghcr.io/attid/lazarus-build-station:latest-i386`
-- `ghcr.io/attid/lazarus-build-station:latest`
+- versioned arch-specific tags
+- versioned multi-arch tag
+- `latest` arch-specific tags
+- `latest` multi-arch tag
 
-The versioned tag and `latest` tag are published as multi-arch manifests that point to the corresponding `amd64` and `i386` builder images.
+## Contributing
 
-## Updating to a newer Lazarus release
-
-When a new Lazarus release appears and you want to refresh the builders:
-
-1. Check that both the `amd64` and `i386` package sets exist upstream if you still need both images.
-2. Download the new upstream `.deb` files from `download.lazarus-ide.org` and compute their `sha256sum` values.
-3. Update `LAZARUS_RELEASE`, `LAZARUS_PACKAGE_VERSION`, `FPC_PACKAGE_VERSION`, and the three checksum build arguments in the Dockerfiles.
-4. Rebuild both images and verify native Linux and Windows-targeted builds.
+Local image builds, release maintenance, and contributor workflow are documented in [CONTRIBUTING.md](/home/itolstov/Projects/other/lazarus-build-station/CONTRIBUTING.md).
 
 ## License
 
