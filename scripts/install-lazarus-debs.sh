@@ -21,10 +21,10 @@ case "$arch" in
     ;;
 esac
 
-lazarus_release="${LAZARUS_RELEASE:-4.4}"
-lazarus_package_version="${LAZARUS_PACKAGE_VERSION:-4.4.0-0}"
+lazarus_release="${LAZARUS_RELEASE:-4.6}"
+lazarus_package_version="${LAZARUS_PACKAGE_VERSION:-4.6.0-0}"
 fpc_package_version="${FPC_PACKAGE_VERSION:-3.2.2-210709}"
-download_root="${DOWNLOAD_ROOT:-https://sourceforge.net/projects/lazarus/files}"
+download_root="${DOWNLOAD_ROOT:-https://download.lazarus-ide.org}"
 download_dir="/tmp/lazarus-debs"
 lazarus_path_encoded="${lazarus_path// /%20}"
 lazarus_release_encoded="${lazarus_release// /%20}"
@@ -48,7 +48,7 @@ checksums=(
 )
 
 for package in "${packages[@]}"; do
-  wget --progress=dot:giga --retry-connrefused --waitretry=1 -O "$package" "${base_url}/${package}/download"
+  wget --progress=dot:giga --retry-connrefused --waitretry=1 -O "$package" "${base_url}/${package}"
 done
 
 if [[ -n "$fpc_laz_sha256" && -n "$fpc_src_sha256" && -n "$lazarus_project_sha256" ]]; then

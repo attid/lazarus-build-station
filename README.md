@@ -15,7 +15,7 @@ This repository contains two builder images:
 - `amd64` builder: native Linux x86_64 toolchain plus Windows `win64` cross-compilation
 - `i386` builder: native Linux i386 toolchain plus Windows `win32` cross-compilation
 
-Both images download official Lazarus/FPC Debian packages during `docker build`.
+Both images download official Lazarus/FPC Debian packages from `download.lazarus-ide.org` during `docker build`.
 The package URLs are pinned by version, and the downloaded `.deb` files are verified against pinned SHA256 checksums during the build.
 
 The `amd64` image uses an Ubuntu 22.04 base. The `i386` image uses a Debian 11 base because current Ubuntu Docker manifests do not publish `linux/386` variants for recent LTS tags.
@@ -24,11 +24,11 @@ Current default package versions:
 
 - amd64 Lazarus release directory: `4.6`
 - amd64 Lazarus package version: `4.6.0-0`
-- i386 Lazarus release directory: `4.4`
-- i386 Lazarus package version: `4.4.0-0`
+- i386 Lazarus release directory: `4.6`
+- i386 Lazarus package version: `4.6.0-0`
 - FPC package version: `3.2.2-210709`
 
-These defaults were chosen because, on 2026-03-25, SourceForge exposes `amd64` Debian packages in the `Lazarus 4.6` directory and `i386` Debian packages in the `Lazarus 4.4` directory.
+These defaults were chosen because, on 2026-03-25, `download.lazarus-ide.org` exposes matching `amd64` and `i386` Debian package sets in the `Lazarus 4.6` directory.
 
 ## Repository layout
 
@@ -140,7 +140,7 @@ docker run --rm -it \
 
 ## How package installation works
 
-During image build, the repository downloads three official Debian packages from the Lazarus SourceForge release tree and installs them in this order:
+During image build, the repository downloads three official Debian packages from the Lazarus release tree at `download.lazarus-ide.org` and installs them in this order:
 
 1. `fpc-laz`
 2. `fpc-src`
@@ -152,19 +152,34 @@ The images then build the relevant Windows cross-compiler inside the container.
 
 ## Limitations
 
-- The build depends on external package hosting at SourceForge.
+- The build depends on external package hosting at `download.lazarus-ide.org`.
 - The default package versions and SHA256 checksums are pinned, but they still assume the upstream download layout remains unchanged.
 - The `i386` image depends on 32-bit Ubuntu base image availability and may require `--platform linux/386` depending on your Docker setup.
 - The `i386` image uses Debian 11 instead of Ubuntu because recent Ubuntu container tags are not published for `linux/386`.
 - This repository does not ship Lazarus/FPC `.deb` files locally.
-- This project provides build environments only. It does not include project templates, runtime images, or release automation.
+- This project provides build environments only. It does not include project templates or runtime images.
+
+## GitHub releases and GHCR images
+
+The repository includes a GitHub Actions workflow at `.github/workflows/release-images.yml`.
+
+When you push a Git tag like `v4.6.0`, the workflow publishes:
+
+- `ghcr.io/attid/lazarus-build-station:4.6.0-amd64`
+- `ghcr.io/attid/lazarus-build-station:4.6.0-i386`
+- `ghcr.io/attid/lazarus-build-station:4.6.0`
+- `ghcr.io/attid/lazarus-build-station:latest-amd64`
+- `ghcr.io/attid/lazarus-build-station:latest-i386`
+- `ghcr.io/attid/lazarus-build-station:latest`
+
+The versioned tag and `latest` tag are published as multi-arch manifests that point to the corresponding `amd64` and `i386` builder images.
 
 ## Updating to a newer Lazarus release
 
 When a new Lazarus release appears and you want to refresh the builders:
 
 1. Check that both the `amd64` and `i386` package sets exist upstream if you still need both images.
-2. Download the new upstream `.deb` files and compute their `sha256sum` values.
+2. Download the new upstream `.deb` files from `download.lazarus-ide.org` and compute their `sha256sum` values.
 3. Update `LAZARUS_RELEASE`, `LAZARUS_PACKAGE_VERSION`, `FPC_PACKAGE_VERSION`, and the three checksum build arguments in the Dockerfiles.
 4. Rebuild both images and verify native Linux and Windows-targeted builds.
 
