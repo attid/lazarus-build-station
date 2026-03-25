@@ -28,6 +28,9 @@ download_root="${DOWNLOAD_ROOT:-https://sourceforge.net/projects/lazarus/files}"
 download_dir="/tmp/lazarus-debs"
 lazarus_path_encoded="${lazarus_path// /%20}"
 lazarus_release_encoded="${lazarus_release// /%20}"
+fpc_laz_sha256="${FPC_LAZ_SHA256:-}"
+fpc_src_sha256="${FPC_SRC_SHA256:-}"
+lazarus_project_sha256="${LAZARUS_PROJECT_SHA256:-}"
 
 mkdir -p "$download_dir"
 cd "$download_dir"
@@ -38,10 +41,23 @@ packages=(
   "fpc-src_${fpc_package_version}_${arch}.deb"
   "lazarus-project_${lazarus_package_version}_${arch}.deb"
 )
+checksums=(
+  "$fpc_laz_sha256"
+  "$fpc_src_sha256"
+  "$lazarus_project_sha256"
+)
 
 for package in "${packages[@]}"; do
   wget --progress=dot:giga --retry-connrefused --waitretry=1 -O "$package" "${base_url}/${package}/download"
 done
+
+if [[ -n "$fpc_laz_sha256" && -n "$fpc_src_sha256" && -n "$lazarus_project_sha256" ]]; then
+  : > SHA256SUMS
+  for i in "${!packages[@]}"; do
+    printf '%s  %s\n' "${checksums[$i]}" "${packages[$i]}" >> SHA256SUMS
+  done
+  sha256sum -c SHA256SUMS
+fi
 
 apt-get update
 apt-get install -y --no-install-recommends ./*.deb

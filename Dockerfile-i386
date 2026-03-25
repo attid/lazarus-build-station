@@ -3,12 +3,26 @@ FROM debian:11
 ARG LAZARUS_RELEASE=4.4
 ARG LAZARUS_PACKAGE_VERSION=4.4.0-0
 ARG FPC_PACKAGE_VERSION=3.2.2-210709
+ARG FPC_LAZ_SHA256=06cf972be9a5bc2897cb113fbd2af0cfccd948fcf904500181d562b8b427117c
+ARG FPC_SRC_SHA256=d654ee136c9f214835465c71bae133c91ed32df342aa78fd2b742b8f91035b2c
+ARG LAZARUS_PROJECT_SHA256=cf62dcb6ffe314d3a782489a2acd9430be62fd6dfb756eccacbaf6c804cff225
+
+LABEL org.opencontainers.image.title="lazarus-build-station" \
+      org.opencontainers.image.description="Docker-based Lazarus/FPC build environment for i386 Linux builds and win32 cross-compilation" \
+      org.opencontainers.image.source="https://github.com/attid/lazarus-build-station" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${LAZARUS_PACKAGE_VERSION}"
 
 ENV DEBIAN_FRONTEND=noninteractive \
     HOME=/tmp \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
     LAZARUS_RELEASE=${LAZARUS_RELEASE} \
     LAZARUS_PACKAGE_VERSION=${LAZARUS_PACKAGE_VERSION} \
-    FPC_PACKAGE_VERSION=${FPC_PACKAGE_VERSION}
+    FPC_PACKAGE_VERSION=${FPC_PACKAGE_VERSION} \
+    FPC_LAZ_SHA256=${FPC_LAZ_SHA256} \
+    FPC_SRC_SHA256=${FPC_SRC_SHA256} \
+    LAZARUS_PROJECT_SHA256=${LAZARUS_PROJECT_SHA256}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     binutils \

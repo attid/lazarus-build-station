@@ -3,12 +3,26 @@ FROM ubuntu:22.04
 ARG LAZARUS_RELEASE=4.6
 ARG LAZARUS_PACKAGE_VERSION=4.6.0-0
 ARG FPC_PACKAGE_VERSION=3.2.2-210709
+ARG FPC_LAZ_SHA256=92000f2b831184e153aab0c910f8ae9240450e5c6d76dc189cf53116ee501d83
+ARG FPC_SRC_SHA256=8c9e145d8056754a9ca39ce3e52e982b8e4816124984c5f542f2a874e721ad53
+ARG LAZARUS_PROJECT_SHA256=0aae1d6ac4e1ddbbdf41fe60193107d37649b3f93efaf315470f99d5dc117fe4
+
+LABEL org.opencontainers.image.title="lazarus-build-station" \
+      org.opencontainers.image.description="Docker-based Lazarus/FPC build environment for amd64 Linux builds and win64 cross-compilation" \
+      org.opencontainers.image.source="https://github.com/attid/lazarus-build-station" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${LAZARUS_PACKAGE_VERSION}"
 
 ENV DEBIAN_FRONTEND=noninteractive \
     HOME=/tmp \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
     LAZARUS_RELEASE=${LAZARUS_RELEASE} \
     LAZARUS_PACKAGE_VERSION=${LAZARUS_PACKAGE_VERSION} \
-    FPC_PACKAGE_VERSION=${FPC_PACKAGE_VERSION}
+    FPC_PACKAGE_VERSION=${FPC_PACKAGE_VERSION} \
+    FPC_LAZ_SHA256=${FPC_LAZ_SHA256} \
+    FPC_SRC_SHA256=${FPC_SRC_SHA256} \
+    LAZARUS_PROJECT_SHA256=${LAZARUS_PROJECT_SHA256}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     binutils \

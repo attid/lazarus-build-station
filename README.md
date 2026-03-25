@@ -16,6 +16,7 @@ This repository contains two builder images:
 - `i386` builder: native Linux i386 toolchain plus Windows `win32` cross-compilation
 
 Both images download official Lazarus/FPC Debian packages during `docker build`.
+The package URLs are pinned by version, and the downloaded `.deb` files are verified against pinned SHA256 checksums during the build.
 
 The `amd64` image uses an Ubuntu 22.04 base. The `i386` image uses a Debian 11 base because current Ubuntu Docker manifests do not publish `linux/386` variants for recent LTS tags.
 
@@ -64,6 +65,20 @@ docker build \
   --build-arg LAZARUS_RELEASE=4.6 \
   --build-arg LAZARUS_PACKAGE_VERSION=4.6.0-0 \
   --build-arg FPC_PACKAGE_VERSION=3.2.2-210709 .
+```
+
+If you override package versions, you should also override the expected checksums:
+
+```bash
+docker build \
+  -f Dockerfile-amd64 \
+  -t lazarus-build-station:amd64 \
+  --build-arg LAZARUS_RELEASE=4.6 \
+  --build-arg LAZARUS_PACKAGE_VERSION=4.6.0-0 \
+  --build-arg FPC_PACKAGE_VERSION=3.2.2-210709 \
+  --build-arg FPC_LAZ_SHA256=... \
+  --build-arg FPC_SRC_SHA256=... \
+  --build-arg LAZARUS_PROJECT_SHA256=... .
 ```
 
 ## Build the i386 image
@@ -131,12 +146,14 @@ During image build, the repository downloads three official Debian packages from
 2. `fpc-src`
 3. `lazarus-project`
 
+The build verifies the downloaded files with pinned SHA256 checksums before package installation.
+
 The images then build the relevant Windows cross-compiler inside the container.
 
 ## Limitations
 
 - The build depends on external package hosting at SourceForge.
-- The default package versions are pinned, but they still assume the upstream download layout remains unchanged.
+- The default package versions and SHA256 checksums are pinned, but they still assume the upstream download layout remains unchanged.
 - The `i386` image depends on 32-bit Ubuntu base image availability and may require `--platform linux/386` depending on your Docker setup.
 - The `i386` image uses Debian 11 instead of Ubuntu because recent Ubuntu container tags are not published for `linux/386`.
 - This repository does not ship Lazarus/FPC `.deb` files locally.
@@ -147,8 +164,9 @@ The images then build the relevant Windows cross-compiler inside the container.
 When a new Lazarus release appears and you want to refresh the builders:
 
 1. Check that both the `amd64` and `i386` package sets exist upstream if you still need both images.
-2. Update `LAZARUS_RELEASE`, `LAZARUS_PACKAGE_VERSION`, and `FPC_PACKAGE_VERSION` in the Dockerfiles.
-3. Rebuild both images and verify native Linux and Windows-targeted builds.
+2. Download the new upstream `.deb` files and compute their `sha256sum` values.
+3. Update `LAZARUS_RELEASE`, `LAZARUS_PACKAGE_VERSION`, `FPC_PACKAGE_VERSION`, and the three checksum build arguments in the Dockerfiles.
+4. Rebuild both images and verify native Linux and Windows-targeted builds.
 
 ## License
 
