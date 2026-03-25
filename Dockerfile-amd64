@@ -1,0 +1,54 @@
+FROM ubuntu:22.04
+
+ARG LAZARUS_RELEASE=4.6
+ARG LAZARUS_PACKAGE_VERSION=4.6.0-0
+ARG FPC_PACKAGE_VERSION=3.2.2-210709
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    HOME=/tmp \
+    LAZARUS_RELEASE=${LAZARUS_RELEASE} \
+    LAZARUS_PACKAGE_VERSION=${LAZARUS_PACKAGE_VERSION} \
+    FPC_PACKAGE_VERSION=${FPC_PACKAGE_VERSION}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    binutils \
+    binutils-mingw-w64-x86-64 \
+    build-essential \
+    ca-certificates \
+    curl \
+    gcc-mingw-w64-x86-64 \
+    gdb \
+    git \
+    libc6-dev \
+    libgdk-pixbuf2.0-dev \
+    libgtk2.0-dev \
+    libncurses5 \
+    libncurses5-dev \
+    libpango1.0-dev \
+    libx11-dev \
+    make \
+    rpm \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY scripts/install-lazarus-debs.sh /usr/local/bin/install-lazarus-debs
+
+RUN chmod +x /usr/local/bin/install-lazarus-debs && install-lazarus-debs amd64
+
+RUN FPCVER="$(fpc -iV)" && \
+    FPCDIR="/usr/share/fpcsrc/${FPCVER}" && \
+    if [ ! -d "${FPCDIR}" ]; then \
+      FPCDIR="$(find /usr/share/fpcsrc -name Makefile -type f -exec dirname {} \; | grep "${FPCVER}" | head -n 1)"; \
+    fi && \
+    test -n "${FPCDIR}" && \
+    cd "${FPCDIR}" && \
+    make clean crossall crossinstall CPU_TARGET=x86_64 OS_TARGET=win64 INSTALL_PREFIX=/usr && \
+    ln -sf "/usr/lib/fpc/${FPCVER}/ppcrossx64" /usr/bin/ppcrossx64 && \
+    if [ ! -f /usr/bin/ppcx64 ] && [ -f "/usr/lib/fpc/${FPCVER}/ppcx64" ]; then \
+      ln -s "/usr/lib/fpc/${FPCVER}/ppcx64" /usr/bin/ppcx64; \
+    fi
+
+RUN chmod 1777 /tmp
+
+WORKDIR /workspace
+CMD ["/bin/bash"]

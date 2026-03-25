@@ -1,0 +1,53 @@
+FROM debian:11
+
+ARG LAZARUS_RELEASE=4.4
+ARG LAZARUS_PACKAGE_VERSION=4.4.0-0
+ARG FPC_PACKAGE_VERSION=3.2.2-210709
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    HOME=/tmp \
+    LAZARUS_RELEASE=${LAZARUS_RELEASE} \
+    LAZARUS_PACKAGE_VERSION=${LAZARUS_PACKAGE_VERSION} \
+    FPC_PACKAGE_VERSION=${FPC_PACKAGE_VERSION}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    binutils \
+    binutils-mingw-w64-i686 \
+    build-essential \
+    ca-certificates \
+    curl \
+    gcc-mingw-w64-i686 \
+    gdb \
+    git \
+    libc6-dev \
+    libgdk-pixbuf2.0-dev \
+    libgtk2.0-dev \
+    libncurses5 \
+    libncurses5-dev \
+    libpango1.0-dev \
+    libx11-dev \
+    make \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY scripts/install-lazarus-debs.sh /usr/local/bin/install-lazarus-debs
+
+RUN chmod +x /usr/local/bin/install-lazarus-debs && install-lazarus-debs i386
+
+RUN FPCVER="$(fpc -iV)" && \
+    FPCDIR="/usr/share/fpcsrc/${FPCVER}" && \
+    if [ ! -d "${FPCDIR}" ]; then \
+      FPCDIR="$(find /usr/share/fpcsrc -name Makefile -type f -exec dirname {} \; | grep "${FPCVER}" | head -n 1)"; \
+    fi && \
+    test -n "${FPCDIR}" && \
+    cd "${FPCDIR}" && \
+    make clean crossall crossinstall CPU_TARGET=i386 OS_TARGET=win32 INSTALL_PREFIX=/usr && \
+    ln -sf "/usr/lib/fpc/${FPCVER}/ppcross386" /usr/bin/ppcross386 && \
+    if [ ! -f /usr/bin/ppc386 ] && [ -f "/usr/lib/fpc/${FPCVER}/ppc386" ]; then \
+      ln -s "/usr/lib/fpc/${FPCVER}/ppc386" /usr/bin/ppc386; \
+    fi
+
+RUN chmod 1777 /tmp
+
+WORKDIR /workspace
+CMD ["/bin/bash"]
