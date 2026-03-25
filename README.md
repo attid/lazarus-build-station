@@ -15,7 +15,14 @@ Published images live in GHCR:
 - `ghcr.io/attid/lazarus-build-station:4.6.0-amd64`
 - `ghcr.io/attid/lazarus-build-station:4.6.0-i386`
 
-The generic `latest` and version tags are published as multi-arch manifests.
+Tag meaning:
+
+- `latest`: multi-arch manifest; Docker pulls the variant matching the host platform when available
+- `latest-amd64`: explicit `amd64` builder image
+- `latest-i386`: explicit `i386` builder image
+- `4.6.0`: multi-arch manifest for release `4.6.0`
+- `4.6.0-amd64`: explicit `amd64` image for release `4.6.0`
+- `4.6.0-i386`: explicit `i386` image for release `4.6.0`
 
 ## Quick start
 
@@ -97,6 +104,12 @@ Pushing a Git tag like `v4.6.0` triggers GitHub Actions to publish:
 ## Contributing
 
 Local image builds, release maintenance, and contributor workflow are documented in [CONTRIBUTING.md](/home/itolstov/Projects/other/lazarus-build-station/CONTRIBUTING.md).
+
+## Example repository
+
+A companion repository named `lazarus-build-station-example` is planned for this project.
+
+It will contain a small Lazarus/FPC example application built with `lazarus-build-station`, including a non-trivial external component so the repository shows a realistic builder workflow rather than only a plain hello world.
 
 ## License
 
