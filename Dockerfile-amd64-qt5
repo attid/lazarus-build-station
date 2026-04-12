@@ -1,0 +1,24 @@
+ARG BASE_IMAGE=ghcr.io/attid/lazarus-build-station:4.6.0-amd64
+FROM ${BASE_IMAGE}
+
+ARG LAZARUS_VERSION_DIR=4.6.0
+
+LABEL org.opencontainers.image.title="lazarus-build-station" \
+      org.opencontainers.image.description="Docker-based Lazarus/FPC build environment for amd64 Linux builds with Qt5 widgetset and win64 cross-compilation" \
+      org.opencontainers.image.source="https://github.com/attid/lazarus-build-station" \
+      org.opencontainers.image.licenses="MIT"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    qtbase5-dev \
+    libqt5x11extras5-dev \
+    qt5-qmake \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN LAZARUS_PATH="/usr/share/lazarus/${LAZARUS_VERSION_DIR}" && \
+    cd "${LAZARUS_PATH}/lcl/interfaces/qt5/cbindings" && \
+    qmake Qt5Pas.pro && \
+    make -j"$(nproc)" && \
+    make install && \
+    ldconfig && \
+    make -C "${LAZARUS_PATH}/lcl/interfaces/qt5" clean all CPU_TARGET=x86_64 OS_TARGET=linux && \
+    test -d "${LAZARUS_PATH}/lcl/units/x86_64-linux/qt5"

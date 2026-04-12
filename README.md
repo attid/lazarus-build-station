@@ -14,15 +14,19 @@ Published images live in GHCR:
 - `ghcr.io/attid/lazarus-build-station:4.6.0`
 - `ghcr.io/attid/lazarus-build-station:4.6.0-amd64`
 - `ghcr.io/attid/lazarus-build-station:4.6.0-i386`
+- `ghcr.io/attid/lazarus-build-station:latest-amd64-qt5`
+- `ghcr.io/attid/lazarus-build-station:4.6.0-amd64-qt5`
 
 Tag meaning:
 
 - `latest`: multi-arch manifest; Docker pulls the variant matching the host platform when available
 - `latest-amd64`: explicit `amd64` builder image
 - `latest-i386`: explicit `i386` builder image
+- `latest-amd64-qt5`: explicit `amd64` builder image with Qt5 widgetset prebuilt for Linux
 - `4.6.0`: multi-arch manifest for release `4.6.0`
 - `4.6.0-amd64`: explicit `amd64` image for release `4.6.0`
 - `4.6.0-i386`: explicit `i386` image for release `4.6.0`
+- `4.6.0-amd64-qt5`: explicit `amd64` image with Qt5 widgetset prebuilt for release `4.6.0`
 
 ## Quick start
 
@@ -48,6 +52,19 @@ docker run --rm -it \
   -v "$PWD:/workspace" \
   ghcr.io/attid/lazarus-build-station:latest \
   fpc src/main.pas
+```
+
+Use the Qt5 image (amd64 only):
+
+```bash
+docker run --rm -it \
+  -v "$PWD:/workspace" \
+  ghcr.io/attid/lazarus-build-station:latest-amd64-qt5 \
+  fpc -MObjFPC -dLCL -dLCLqt5 -Fu/usr/share/lazarus/4.6.0/lcl/units/x86_64-linux/qt5 \
+      -Fu/usr/share/lazarus/4.6.0/lcl/units/x86_64-linux \
+      -Fu/usr/share/lazarus/4.6.0/components/lazutils/lib/x86_64-linux \
+      -Fu/usr/share/lazarus/4.6.0/packager/units/x86_64-linux \
+      -o/workspace/app /workspace/app.lpr
 ```
 
 ## Cross-compilation examples
@@ -90,6 +107,7 @@ During image build, packages are downloaded from `download.lazarus-ide.org`, pin
 - Internet access is required only when building the images locally.
 - The published images depend on upstream Lazarus package availability when the repository is updated for future releases.
 - The `i386` image uses Debian 11 because recent Ubuntu base images are not published for `linux/386`.
+- `latest-amd64-qt5` is an optional separate image for Qt5 and does not replace existing Gtk2 images.
 - This repository does not ship Lazarus/FPC `.deb` packages locally.
 
 ## Releases
@@ -100,6 +118,8 @@ Pushing a Git tag like `v4.6.0` triggers GitHub Actions to publish:
 - versioned multi-arch tag
 - `latest` arch-specific tags
 - `latest` multi-arch tag
+- versioned Qt5 tag for `amd64` (`<version>-amd64-qt5`)
+- `latest-amd64-qt5`
 
 ## Contributing
 
