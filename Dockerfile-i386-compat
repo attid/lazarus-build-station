@@ -1,0 +1,73 @@
+FROM ubuntu:18.04
+
+ARG LAZARUS_RELEASE=4.6
+ARG LAZARUS_PACKAGE_VERSION=4.6.0-0
+ARG FPC_PACKAGE_VERSION=3.2.2-210709
+ARG FPC_LAZ_SHA256=06cf972be9a5bc2897cb113fbd2af0cfccd948fcf904500181d562b8b427117c
+ARG FPC_SRC_SHA256=d654ee136c9f214835465c71bae133c91ed32df342aa78fd2b742b8f91035b2c
+ARG LAZARUS_PROJECT_SHA256=7a7c06aa49e39ea2bdb40c7ee93550a4042880d02755a73273fd9b71b6c8cb4c
+
+LABEL org.opencontainers.image.title="lazarus-build-station" \
+      org.opencontainers.image.description="Docker-based Lazarus/FPC build environment for i386 Linux builds and win32 cross-compilation (glibc 2.27 compat build, Ubuntu 18.04 base)" \
+      org.opencontainers.image.source="https://github.com/attid/lazarus-build-station" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${LAZARUS_PACKAGE_VERSION}"
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    HOME=/tmp \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LAZARUS_RELEASE=${LAZARUS_RELEASE} \
+    LAZARUS_PACKAGE_VERSION=${LAZARUS_PACKAGE_VERSION} \
+    FPC_PACKAGE_VERSION=${FPC_PACKAGE_VERSION} \
+    FPC_LAZ_SHA256=${FPC_LAZ_SHA256} \
+    FPC_SRC_SHA256=${FPC_SRC_SHA256} \
+    LAZARUS_PROJECT_SHA256=${LAZARUS_PROJECT_SHA256}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    binutils \
+    binutils-mingw-w64-i686 \
+    build-essential \
+    ca-certificates \
+    curl \
+    gcc-mingw-w64-i686 \
+    gdb \
+    git \
+    libc6-dev \
+    libgdk-pixbuf2.0-dev \
+    libgtk2.0-dev \
+    libncurses5 \
+    libncurses5-dev \
+    libpango1.0-dev \
+    libx11-dev \
+    make \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY scripts/install-lazarus-debs.sh /usr/local/bin/install-lazarus-debs
+
+RUN chmod +x /usr/local/bin/install-lazarus-debs && install-lazarus-debs i386
+
+RUN FPCVER="$(fpc -iV)" && \
+    FPCDIR="/usr/share/fpcsrc/${FPCVER}" && \
+    if [ ! -d "${FPCDIR}" ]; then \
+      FPCDIR="$(find /usr/share/fpcsrc -name Makefile -type f -exec dirname {} \; | grep "${FPCVER}" | head -n 1)"; \
+    fi && \
+    test -n "${FPCDIR}" && \
+    cd "${FPCDIR}" && \
+    make clean crossall crossinstall CPU_TARGET=i386 OS_TARGET=win32 INSTALL_PREFIX=/usr && \
+    ln -sf "/usr/lib/fpc/${FPCVER}/ppcross386" /usr/bin/ppcross386 && \
+    if [ ! -f /usr/bin/ppc386 ] && [ -f "/usr/lib/fpc/${FPCVER}/ppc386" ]; then \
+      ln -s "/usr/lib/fpc/${FPCVER}/ppc386" /usr/bin/ppc386; \
+    fi
+
+RUN make -C /usr/share/lazarus/4.6.0 lazbuild && \
+    test -x /usr/share/lazarus/4.6.0/lazbuild && \
+    if objdump -T /usr/share/lazarus/4.6.0/lazbuild | grep -q GLIBC_2.34; then \
+      echo "rebuilt lazbuild still requires GLIBC_2.34" >&2; exit 1; \
+    fi
+
+RUN chmod 1777 /tmp
+
+WORKDIR /workspace
+CMD ["/bin/bash"]
